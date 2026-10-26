@@ -909,6 +909,11 @@ function renderList(){
   const list=filtered().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')||(b.creado||'').localeCompare(a.creado||''));
   const t=sum(list),tot=$('#lTotals');tot.textContent='';
   [['Jerseys',t.q],['Ingreso',money(t.m)],['Ventas',list.length],['Promedio',t.q?money(t.m/t.q):'–']].forEach(([k,v])=>{const s=el('span',null,k+': ');s.appendChild(el('b',null,v));tot.appendChild(s)});
+  if(!st.sFilter&&!st.q){
+    const gT=st.month==='all'?gastos.reduce((a,g)=>a+(+g.monto||0),0):gastoMes(st.month),gan=t.m-gT;
+    const gs=el('span',null,'Gastos: '),gb=el('b',null,money(gT));gb.style.color='var(--accent)';gs.appendChild(gb);tot.appendChild(gs);
+    const ns=el('span',null,'Ganancia: '),nb=el('b',null,(gan<0?'-':'')+money(Math.abs(gan)));nb.style.color=gan<0?'var(--accent)':'var(--ok)';ns.appendChild(nb);tot.appendChild(ns);
+  }
   const pays={};list.forEach(s=>{let k=(s.pago||'Sin dato').trim();k=cap(k.toLowerCase()).replace(/^Apple( pay| cash)?$/i,'Apple Pay');pays[k]=(pays[k]||0)+(+s.precio||0)});
   const max=Math.max(1,...Object.values(pays)),pb=$('#payBars');pb.textContent='';
   Object.entries(pays).sort((a,b)=>b[1]-a[1]).slice(0,8).forEach(([k,v])=>{const r=el('div','pb');r.appendChild(el('span',null,k));const bar=el('div','bar'),i=el('i');i.style.width=(v/max*100)+'%';bar.appendChild(i);r.appendChild(bar);r.appendChild(el('span','v',money(v)));pb.appendChild(r)});
@@ -1484,7 +1489,7 @@ function renderAll(){renderHome();renderClients();renderBoard();renderMonthSel()
   const listen=(ref,fn)=>{const go=()=>ref.onSnapshot(fn,err=>{setSync(false,'Reconectando…');if(err&&err.code==='unavailable')setTimeout(go,3000);else if(err&&err.code==='revoked')setSync(false,'Sin acceso')});go()};
   listen(col.limit(1000),snap=>{sales=snap.docs.map(d=>({id:d.id,...d.data()}));setSync(true,snap.metadata.fromCache?'Cargando…':'En vivo');renderAll()});
   listen(invCol.limit(500),snap=>{inv=snap.docs.map(d=>({id:d.id,...d.data()}));renderStock();renderHome();if(!$('#picker').hidden)renderPicker()});
-  listen(db.collection('gastos').limit(1000),snap=>{gastos=snap.docs.map(d=>({id:d.id,...d.data()}));renderGastos();renderMonths();renderHome()});
+  listen(db.collection('gastos').limit(1000),snap=>{gastos=snap.docs.map(d=>({id:d.id,...d.data()}));renderGastos();renderMonths();renderList();renderHome()});
   listen(db.doc('config/saldo'),snap=>{saldo=snap.exists?snap.data():null;renderHome()});
   listen(db.collection('ordenes').limit(200),snap=>{orders=snap.docs.map(d=>({id:d.id,...d.data()}));renderOrders();renderHome()});
   listen(db.doc('config/hoja'),snap=>{const d=snap.exists?snap.data():{};cfg={url:d.url||'',key:d.key||''};refreshSave();if(!$('#pSettings').hidden)fillCfg();if(edDraft)paintEdLink()});
